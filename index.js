@@ -7,7 +7,6 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Proxy para a foto
 app.get('/api/proxy-image', async (req, res) => {
     try {
         const url = req.query.url;
@@ -22,9 +21,9 @@ app.get('/api/proxy-image', async (req, res) => {
     } catch (e) { res.status(500).send("Erro"); }
 });
 
-// O Motor configurado para a SUA API
 app.get('/api/info/:user', async (req, res) => {
     const user = req.params.user;
+    console.log("Buscando usuário:", user);
 
     const options = {
         method: 'GET',
@@ -39,23 +38,21 @@ app.get('/api/info/:user', async (req, res) => {
     try {
         const response = await axios.request(options);
         
-        // AJUSTE AQUI: Essa API coloca tudo dentro de response.data
-        const u = response.data; 
+        // A MUDANÇA ESTÁ AQUI: Tentando dois caminhos diferentes para achar os dados
+        const u = response.data.data || response.data; 
 
-        // Verificação para não dar erro se não achar nada
-        if (!u || !u.full_name) {
-            return res.status(404).json({ erro: "Perfil não encontrado" });
+        if (!u || (!u.full_name && !u.username)) {
+            return res.status(404).json({ erro: "Dados não encontrados na resposta" });
         }
 
         res.json({
-            nome: u.full_name,
-            bio: u.biography,
-            seguidores: u.follower_count,
-            foto: `/api/proxy-image?url=${encodeURIComponent(u.profile_pic_url_hd)}`
+            nome: u.full_name || u.username || "Sem nome",
+            bio: u.biography || "Sem biografia",
+            seguidores: u.follower_count || 0,
+            foto: u.profile_pic_url_hd ? `/api/proxy-image?url=${encodeURIComponent(u.profile_pic_url_hd)}` : ""
         });
     } catch (error) {
-        console.error("Erro na busca:", error.message);
-        res.status(404).json({ erro: "Erro ao conectar com a API" });
+        res.status(500).json({ erro: "Erro na API do RapidAPI" });
     }
 });
 
