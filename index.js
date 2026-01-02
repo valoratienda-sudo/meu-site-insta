@@ -18,16 +18,16 @@ app.get('/api/proxy-image', async (req, res) => {
         });
         res.setHeader('Content-Type', response.headers['content-type']);
         response.data.pipe(res);
-    } catch (e) { res.status(500).send("Erro na imagem"); }
+    } catch (e) { res.status(500).send("Erro"); }
 });
 
 app.get('/api/info/:user', async (req, res) => {
-    const user = req.params.user;
-    
+    const usuarioInstagram = req.params.user;
+
     const options = {
         method: 'GET',
         url: 'https://instagram-scraper-stable-api.p.rapidapi.com/get_user_info.php',
-        params: { user: user },
+        params: { user: usuarioInstagram }, // <--- O NOME DO USUÁRIO VAI AQUI
         headers: {
             'x-rapidapi-key': '8a26345eb0mshbe9bae691b6a372p1ab908jsn48161e5ec2b8',
             'x-rapidapi-host': 'instagram-scraper-stable-api.p.rapidapi.com'
@@ -36,23 +36,25 @@ app.get('/api/info/:user', async (req, res) => {
 
     try {
         const response = await axios.request(options);
-        console.log(response.data); // Isso ajuda a ver o erro no painel da Vercel
+        
+        // Vamos pegar os dados de forma super protegida
+        const info = response.data;
 
-        // AQUI ESTÁ A MUDANÇA: Pegando os dados de qualquer jeito que vierem
-        const data = response.data;
-
-        // Se a API retornar erro ou não vier nada
-        if (!data) return res.status(404).json({ erro: "API vazia" });
+        // Se a API não devolver nada com nome ou username, ela falhou
+        if (!info || (!info.full_name && !info.username)) {
+            return res.status(404).json({ erro: "A API não encontrou esse @ no Instagram." });
+        }
 
         res.json({
-            nome: data.full_name || data.username || "Não encontrado",
-            bio: data.biography || "Sem biografia",
-            seguidores: data.follower_count || data.followers || 0,
-            foto: data.profile_pic_url_hd ? `/api/proxy-image?url=${encodeURIComponent(data.profile_pic_url_hd)}` : ""
+            nome: info.full_name || info.username || "Perfil",
+            bio: info.biography || "Sem biografia",
+            seguidores: info.follower_count || 0,
+            foto: info.profile_pic_url_hd ? `/api/proxy-image?url=${encodeURIComponent(info.profile_pic_url_hd)}` : ""
         });
 
     } catch (error) {
-        res.status(500).json({ erro: "Erro de conexão" });
+        // Se der erro de conexão ou de Key
+        res.status(500).json({ erro: "Erro na conexão com o servidor da API." });
     }
 });
 
