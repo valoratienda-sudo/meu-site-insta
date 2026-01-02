@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisador de Perfil Instagram</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 border border-gray-100">
+        <h1 class="text-2xl font-black text-center mb-6 text-gray-800">🔍 Buscar Perfil</h1>
+        
+        <div class="space-y-4">
+            <input id="user" type="text" placeholder="Digite o usuário (ex: neymarjr)" 
+                   class="w-full px-5 py-4 rounded-2xl bg-gray-100 border-none focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 font-medium">
+            
+            <button onclick="buscar()" id="btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-blue-200">
+                Analisar Agora
+            </button>
+        </div>
+
+        <div id="resultado" class="hidden mt-10 border-t pt-8">
+            <div class="flex flex-col items-center text-center">
+                <img id="f" src="" class="w-32 h-32 rounded-full border-4 border-blue-500 p-1 object-cover shadow-xl">
+                
+                <h2 id="n" class="text-2xl font-bold mt-4 text-gray-800"></h2>
+                
+                <div class="bg-blue-50 text-blue-700 px-4 py-1 rounded-full text-sm font-black mt-2">
+                    <span id="s"></span> seguidores
+                </div>
+
+                <p id="b" class="mt-4 text-gray-600 leading-relaxed text-sm italic bg-gray-50 p-4 rounded-xl w-full"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function buscar() {
+            const user = document.getElementById('user').value.replace('@', '');
+            const btn = document.getElementById('btn');
+            const resDiv = document.getElementById('resultado');
+
+            if(!user) return alert("Por favor, digite um usuário!");
+
+            btn.innerText = "Buscando...";
+            btn.disabled = true;
+
+            try {
+                // Aqui ele chama o seu motor (index.js)
+                const response = await fetch('/api/info/' + user);
+                const data = await response.json();
+
+                if(data.erro) throw new Error();
+
+                // Colocando os dados na tela
+                document.getElementById('f').src = data.foto; // Foto vindo do Proxy
+                document.getElementById('n').innerText = data.nome;
+                document.getElementById('s').innerText = data.seguidores.toLocaleString('pt-BR');
+                document.getElementById('b').innerText = data.bio || "Sem biografia.";
+
+                // Mostra o cartão de resultado
+                resDiv.classList.remove('hidden');
+            } catch (e) {
+                alert("Perfil não encontrado ou erro no sistema.");
+            } finally {
+                btn.innerText = "Analisar Agora";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
