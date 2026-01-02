@@ -7,7 +7,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Proxy para a foto não quebrar
+// Proxy para a foto
 app.get('/api/proxy-image', async (req, res) => {
     try {
         const url = req.query.url;
@@ -19,10 +19,10 @@ app.get('/api/proxy-image', async (req, res) => {
         });
         res.setHeader('Content-Type', response.headers['content-type']);
         response.data.pipe(res);
-    } catch (e) { res.status(500).send("Erro na imagem"); }
+    } catch (e) { res.status(500).send("Erro"); }
 });
 
-// Busca os dados usando sua Key do RapidAPI
+// O Motor configurado para a SUA API
 app.get('/api/info/:user', async (req, res) => {
     const user = req.params.user;
 
@@ -38,8 +38,14 @@ app.get('/api/info/:user', async (req, res) => {
 
     try {
         const response = await axios.request(options);
-        // Essa API costuma retornar os dados dentro de 'data'
-        const u = response.data.data; 
+        
+        // AJUSTE AQUI: Essa API coloca tudo dentro de response.data
+        const u = response.data; 
+
+        // Verificação para não dar erro se não achar nada
+        if (!u || !u.full_name) {
+            return res.status(404).json({ erro: "Perfil não encontrado" });
+        }
 
         res.json({
             nome: u.full_name,
@@ -48,7 +54,8 @@ app.get('/api/info/:user', async (req, res) => {
             foto: `/api/proxy-image?url=${encodeURIComponent(u.profile_pic_url_hd)}`
         });
     } catch (error) {
-        res.status(404).json({ erro: "Perfil não encontrado ou limite da API atingido." });
+        console.error("Erro na busca:", error.message);
+        res.status(404).json({ erro: "Erro ao conectar com a API" });
     }
 });
 
