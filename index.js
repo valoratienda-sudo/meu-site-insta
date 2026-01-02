@@ -18,13 +18,12 @@ app.get('/api/proxy-image', async (req, res) => {
         });
         res.setHeader('Content-Type', response.headers['content-type']);
         response.data.pipe(res);
-    } catch (e) { res.status(500).send("Erro"); }
+    } catch (e) { res.status(500).send("Erro na imagem"); }
 });
 
 app.get('/api/info/:user', async (req, res) => {
     const user = req.params.user;
-    console.log("Buscando usuário:", user);
-
+    
     const options = {
         method: 'GET',
         url: 'https://instagram-scraper-stable-api.p.rapidapi.com/get_user_info.php',
@@ -37,22 +36,23 @@ app.get('/api/info/:user', async (req, res) => {
 
     try {
         const response = await axios.request(options);
-        
-        // A MUDANÇA ESTÁ AQUI: Tentando dois caminhos diferentes para achar os dados
-        const u = response.data.data || response.data; 
+        console.log(response.data); // Isso ajuda a ver o erro no painel da Vercel
 
-        if (!u || (!u.full_name && !u.username)) {
-            return res.status(404).json({ erro: "Dados não encontrados na resposta" });
-        }
+        // AQUI ESTÁ A MUDANÇA: Pegando os dados de qualquer jeito que vierem
+        const data = response.data;
+
+        // Se a API retornar erro ou não vier nada
+        if (!data) return res.status(404).json({ erro: "API vazia" });
 
         res.json({
-            nome: u.full_name || u.username || "Sem nome",
-            bio: u.biography || "Sem biografia",
-            seguidores: u.follower_count || 0,
-            foto: u.profile_pic_url_hd ? `/api/proxy-image?url=${encodeURIComponent(u.profile_pic_url_hd)}` : ""
+            nome: data.full_name || data.username || "Não encontrado",
+            bio: data.biography || "Sem biografia",
+            seguidores: data.follower_count || data.followers || 0,
+            foto: data.profile_pic_url_hd ? `/api/proxy-image?url=${encodeURIComponent(data.profile_pic_url_hd)}` : ""
         });
+
     } catch (error) {
-        res.status(500).json({ erro: "Erro na API do RapidAPI" });
+        res.status(500).json({ erro: "Erro de conexão" });
     }
 });
 
